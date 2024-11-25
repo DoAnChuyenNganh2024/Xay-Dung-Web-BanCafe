@@ -1,0 +1,104 @@
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo
+    restart: always
+    ports:
+      - 27017:27017
+    volumes:
+      - ./data/mongo:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=Quandz@@2083
+    networks:
+      - quanndb_network
+
+  mysql:
+    image: mysql
+    restart: always
+    ports:
+      - 3307:3306
+    volumes:
+      - ./data/mysql:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=Quandz@@2083
+    networks:
+      - quanndb_network
+
+  lowland-backend:
+    image: lowland/backend:latest
+    build: 
+      context: ./back-end/LowLand
+    restart: always
+    ports:
+      - 2818:2818
+    environment:
+      #APP
+      - APP_SECRET_KEY=ac1141610294a4ec022d9721bf83ec42c8ac548393a07417269c7cbf30fd0f7b
+      - APP_ORIGIN_CLIENT=http://localhost:5173
+      - APP_ORIGIN_ADMIN=http://localhost:5174
+      #MySQL
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/lowland
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=Quandz@@2083
+      #Mongo
+      - SPRING_DATA_MONGO_DATABASE=lowland
+      - SPRING_DATA_MONGO_URI=mongodb://root:Quandz%40%402083@mongo:27017/
+      #Cloudinary
+      - CLOUD_NAME=dqh3nmtam
+      - CLOUD_API_KEY=729227722912876
+      - CLOUD_API_SECRET=ZQILhDNsvpr4FTViE248Au_cpY0
+      #PayOS
+      - PAYOS_CLIENT_ID=6d09642c-91fb-4643-ac10-99aacc99381
+      - PAYOS_CLIENT_SECRET=02b6746a-517a-4bd9-8e4e-65e83890af5
+      - PAYOS_CHECKSUM_KEY=a4b21d36582902f56af34fafe75550e28be29099891168b8ba6b05fc00e4e85
+      #Google
+      - GOOGLE_CLIENT_ID=188304617399-1idcq9rvjotjkep0hfnp6l502o83jp3v.apps.googleusercontent.com
+      - GOOGLE_CLIENT_SECRET=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
+
+    depends_on:
+      - mongo
+      - mysql
+    networks:
+      - quanndb_network
+
+  lowland-admin:
+    image: lowland/admin:latest
+    build: 
+      context: ./front-end/Admin
+      args:
+        VITE_SERVER_BASE_URL: http://localhost:2818/api/v1.0.0
+        VITE_CLIENT: http://localhost:5173
+    restart: always
+    ports: 
+      - 5174:80
+    environment:
+      - VITE_SERVER_BASE_URL=http://localhost:2818/api/v1.0.0
+      - VITE_CLIENT=http://localhost:5173
+    depends_on:
+      - lowland-backend
+    networks:
+      - quanndb_network
+  
+  lowland-client:
+    image: lowland/client:latest
+    build: 
+      context: ./front-end/Client
+      args:
+        VITE_SERVER_BASE_URL: http://localhost:2818/api/v1.0.0
+        VITE_CLIENT_ID: 188304617399-1idcq9rvjotjkep0hfnp6l502o83jp3v.apps.googleusercontent.com
+    restart: always
+    ports: 
+      - 5173:80
+    environment:
+      - VITE_SERVER_BASE_URL=http://localhost:2818/api/v1.0.0
+      - VITE_CLIENT_ID=188304617399-1idcq9rvjotjkep0hfnp6l502o83jp3v.apps.googleusercontent.com
+    depends_on:
+      - lowland-backend
+    networks:
+      - quanndb_network
+
+networks:
+  quanndb_network:
+    driver: bridge
